@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import select, desc
 from sqlalchemy.orm import Session
 from models.product import Product
 from services.product_service import ProductService
@@ -35,7 +35,7 @@ class InventoryService():
     def issue_stock(self, sku: str, quantity: int) -> StockMovement:
 
         if quantity < 1:
-                    raise ValueError("Quantity must be greater than zero")
+            raise ValueError("Quantity must be greater than zero")
         
         stmt = select(Product).where(Product.sku == sku).with_for_update().execution_options(populate_existing=True)
         product = self.session.scalar(stmt)
@@ -73,7 +73,13 @@ class InventoryService():
 
         return product.quantity < product.min_stock
 
-    def get_low_stock_products(self) -> list[Product]:
+    def get_low_stock_products(self) -> list[StockMovement]:
         stmt = select(Product).where(Product.quantity < Product.min_stock)
+
+        return self.session.scalars(stmt).all()
+
+    def get_all_movements(self) -> list[StockMovement]:
+
+        stmt = select(StockMovement).order_by(desc(StockMovement.created_at))
 
         return self.session.scalars(stmt).all()
